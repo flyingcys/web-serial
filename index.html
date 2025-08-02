@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome 串口调试助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 串口连接控制面板样式 */
+        .connection-panel {
+            background: linear-gradient(135deg, #8B7CF6, #A78BFA);
+            border-radius: 12px;
+            padding: 24px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 124, 246, 0.3);
+        }
+
+        .connection-panel h2 {
+            margin-bottom: 20px;
+            font-size: 18px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .config-item label {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .config-item select {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .connection-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3B82F6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563EB;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: #10B981;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #059669;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #EF4444;
+        }
+
+        .status-dot.connected {
+            background: #10B981;
+        }
+
+        /* 数据接收面板样式 */
+        .receive-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .receive-panel h2 {
+            color: #374151;
+            margin-bottom: 16px;
+            font-size: 16px;
+            background: #F3F4F6;
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .receive-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .receive-options {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        .checkbox-group label {
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .data-display {
+            background: #1F2937;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #D1D5DB;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .data-display::before {
+            content: "等待串口数据...";
+            color: #6B7280;
+            font-style: italic;
+        }
+
+        .data-display.has-data::before {
+            display: none;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            padding: 8px 0;
+            font-size: 12px;
+            color: #6B7280;
+            border-top: 1px solid #E5E7EB;
+        }
+
+        /* 数据发送面板样式 */
+        .send-panel {
+            background: linear-gradient(135deg, #10B981, #34D399);
+            border-radius: 12px;
+            padding: 24px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .send-panel h2 {
+            margin-bottom: 20px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .send-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .send-mode-options {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .send-input {
+            margin-bottom: 16px;
+        }
+
+        .send-input textarea {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 100px;
+            background: white;
+            color: #333;
+        }
+
+        .send-input textarea::placeholder {
+            color: #9CA3AF;
+        }
+
+        .quick-commands {
+            margin-top: 16px;
+        }
+
+        .quick-commands h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .quick-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-quick {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-quick:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-manage {
+            background: #F59E0B;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-manage:hover {
+            background: #D97706;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .connection-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .receive-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .send-options {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* 错误提示样式 */
+        .error-message {
+            background: #FEE2E2;
+            color: #DC2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border-left: 4px solid #DC2626;
+        }
+
+        .success-message {
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border-left: 4px solid #10B981;
+        }
+
+        /* 隐藏元素 */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 串口连接控制面板 -->
+        <div class="connection-panel">
+            <h2>串口连接控制</h2>
+            
+            <div class="config-grid">
+                <div class="config-item">
+                    <label for="baudRate">波特率:</label>
+                    <select id="baudRate">
+                        <option value="9600">9600</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                        <option value="57600">57600</option>
+                        <option value="115200" selected>115200</option>
+                        <option value="230400">230400</option>
+                        <option value="460800">460800</option>
+                        <option value="921600">921600</option>
+                    </select>
+                </div>
+                
+                <div class="config-item">
+                    <label for="dataBits">数据位:</label>
+                    <select id="dataBits">
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8" selected>8</option>
+                    </select>
+                </div>
+                
+                <div class="config-item">
+                    <label for="stopBits">停止位:</label>
+                    <select id="stopBits">
+                        <option value="1" selected>1</option>
+                        <option value="2">2</option>
+                    </select>
+                </div>
+                
+                <div class="config-item">
+                    <label for="parity">校验位:</label>
+                    <select id="parity">
+                        <option value="none" selected>无</option>
+                        <option value="even">偶校验</option>
+                        <option value="odd">奇校验</option>
+                    </select>
+                </div>
+                
+                <div class="config-item">
+                    <label for="targetDevice">目标设备:</label>
+                    <select id="targetDevice">
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="connection-controls">
+                <button id="connectBtn" class="btn btn-primary">🔗 连接串口</button>
+                <button id="disconnectBtn" class="btn btn-secondary" disabled>断开连接</button>
+                <div class="status-indicator">
+                    <div id="statusDot" class="status-dot"></div>
+                    <span id="statusText">未连接</span>
+                </div>
+                <button id="troubleshootBtn" class="btn btn-danger">🔧 串口故障排除</button>
+            </div>
+            
+            <div id="errorMessage" class="error-message hidden"></div>
+            <div id="successMessage" class="success-message hidden"></div>
+        </div>
+
+        <!-- 数据接收面板 -->
+        <div class="receive-panel">
+            <h2>接收数据</h2>
+            
+            <div class="receive-controls">
+                <div class="receive-options">
+                    <button id="clearDataBtn" class="btn btn-secondary">清空日志</button>
+                    <button id="saveDataBtn" class="btn btn-secondary">保存日志</button>
+                    <button id="pauseReceiveBtn" class="btn btn-secondary">⏸️ 暂停接收</button>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="receiveHexMode">
+                        <label for="receiveHexMode">HEX显示</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showTimestamp" checked>
+                        <label for="showTimestamp">显示时间戳</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="autoScroll" checked>
+                        <label for="autoScroll">自动滚动</label>
+                    </div>
+                    <button id="settingsBtn" class="btn btn-secondary">⚙️</button>
+                </div>
+                <div class="receive-search">
+                    <input type="text" id="searchFilter" placeholder="数据过滤/搜索..." style="padding: 6px 12px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px;">
+                </div>
+            </div>
+            
+            <div id="dataDisplay" class="data-display"></div>
+            
+            <div class="stats-bar">
+                <span>接收: <span id="rxBytes">0</span> 字节</span>
+                <span>发送: <span id="txBytes">0</span> 字节</span>
+                <span>速率: <span id="commSpeed">0</span> B/s</span>
+                <span>错误: <span id="errorCount">0</span></span>
+                <span>缓冲: <span id="bufferCount">0</span>/<span id="maxBuffer">10000</span></span>
+            </div>
+        </div>
+
+        <!-- 数据发送面板 -->
+        <div class="send-panel">
+            <h2>发送数据</h2>
+            
+            <div class="send-options">
+                <div class="send-mode-options">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="hexMode">
+                        <label for="hexMode">HEX模式</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="addNewline" checked>
+                        <label for="addNewline">添加换行符</label>
+                    </div>
+                </div>
+                <button id="sendBtn" class="btn btn-primary">📤 发送</button>
+            </div>
+            
+            <div class="send-input">
+                <textarea id="sendData" placeholder="输入要发送的数据..."></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: rgba(255, 255, 255, 0.8);">
+                    <span>字符数: <span id="charCount">0</span></span>
+                    <div>
+                        <label style="margin-right: 12px;">
+                            <input type="checkbox" id="cyclicSend" style="margin-right: 4px;">
+                            循环发送
+                        </label>
+                        <label style="margin-right: 12px;">
+                            间隔: <input type="number" id="sendInterval" value="1000" min="100" max="60000" style="width: 60px; padding: 2px 4px; border: none; border-radius: 3px; margin-left: 4px;">ms
+                        </label>
+                        <button id="historyBtn" class="btn-quick">历史</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="quick-commands">
+                <h3>快捷发送:</h3>
+                <div class="quick-buttons">
+                    <button class="btn-quick" data-command="AT">AT</button>
+                    <button class="btn-quick" data-command="AT+CSQ">AT+CSQ</button>
+                    <button class="btn-quick" data-command="AT+CPIN?">AT+CPIN?</button>
+                    <button class="btn-quick" data-command="AT+CGMI">AT+CGMI</button>
+                    <button class="btn-manage">管理命令</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let serialPort = null;
+        let reader = null;
+        let writer = null;
+        let isConnected = false;
+        let rxByteCount = 0;
+        let txByteCount = 0;
+        let availablePorts = [];
+        let connectionStartTime = null;
+        let isReceivePaused = false;
+        let receiveBuffer = [];
+        let maxBufferSize = 10000;
+        let sendHistory = [];
+        let maxHistorySize = 50;
+        let cyclicSendTimer = null;
+        let quickCommands = [
+            { name: 'AT', command: 'AT' },
+            { name: 'AT+CSQ', command: 'AT+CSQ' },
+            { name: 'AT+CPIN?', command: 'AT+CPIN?' },
+            { name: 'AT+CGMI', command: 'AT+CGMI' }
+        ];
+        let errorCount = 0;
+        let communicationStartTime = null;
+        let lastDataTime = null;
+
+        // DOM 元素
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const dataDisplay = document.getElementById('dataDisplay');
+        const sendBtn = document.getElementById('sendBtn');
+        const sendData = document.getElementById('sendData');
+        const hexMode = document.getElementById('hexMode');
+        const addNewline = document.getElementById('addNewline');
+        const showTimestamp = document.getElementById('showTimestamp');
+        const autoScroll = document.getElementById('autoScroll');
+        const clearDataBtn = document.getElementById('clearDataBtn');
+        const saveDataBtn = document.getElementById('saveDataBtn');
+        const pauseReceiveBtn = document.getElementById('pauseReceiveBtn');
+        const receiveHexMode = document.getElementById('receiveHexMode');
+        const searchFilter = document.getElementById('searchFilter');
+        const charCount = document.getElementById('charCount');
+        const cyclicSend = document.getElementById('cyclicSend');
+        const sendInterval = document.getElementById('sendInterval');
+        const historyBtn = document.getElementById('historyBtn');
+        const rxBytesSpan = document.getElementById('rxBytes');
+        const txBytesSpan = document.getElementById('txBytes');
+        const commSpeedSpan = document.getElementById('commSpeed');
+        const errorCountSpan = document.getElementById('errorCount');
+        const bufferCountSpan = document.getElementById('bufferCount');
+        const maxBufferSpan = document.getElementById('maxBuffer');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSerialSupport();
+            setupEventListeners();
+            checkExistingPorts();
+            loadQuickCommands();
+            initializeQuickCommands();
+            loadSendHistory();
+        });
+
+        // 检查浏览器支持
+        function checkSerialSupport() {
+            if (!('serial' in navigator)) {
+                showError('您的浏览器不支持 Web Serial API。请使用 Chrome 89+ 或 Edge 89+ 浏览器。');
+                connectBtn.disabled = true;
+            }
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            connectBtn.addEventListener('click', connectToSerial);
+            disconnectBtn.addEventListener('click', disconnectFromSerial);
+            sendBtn.addEventListener('click', sendSerialData);
+            clearDataBtn.addEventListener('click', clearReceivedData);
+            saveDataBtn.addEventListener('click', saveReceivedData);
+            pauseReceiveBtn.addEventListener('click', toggleReceivePause);
+            receiveHexMode.addEventListener('change', refreshDataDisplay);
+            searchFilter.addEventListener('input', filterDisplayedData);
+            document.getElementById('troubleshootBtn').addEventListener('click', showTroubleshootDialog);
+            historyBtn.addEventListener('click', showSendHistory);
+            cyclicSend.addEventListener('change', toggleCyclicSend);
+            sendData.addEventListener('input', updateCharCount);
+            
+            // Enter 键发送
+            sendData.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    sendSerialData();
+                }
+            });
+        }
+
+        // 连接串口
+        async function connectToSerial() {
+            try {
+                const baudRate = parseInt(document.getElementById('baudRate').value);
+                const dataBits = parseInt(document.getElementById('dataBits').value);
+                const stopBits = parseInt(document.getElementById('stopBits').value);
+                const parity = document.getElementById('parity').value;
+
+                serialPort = await navigator.serial.requestPort();
+                
+                await serialPort.open({
+                    baudRate: baudRate,
+                    dataBits: dataBits,
+                    stopBits: stopBits,
+                    parity: parity
+                });
+
+                isConnected = true;
+                connectionStartTime = Date.now();
+                communicationStartTime = Date.now();
+                errorCount = 0;
+                updateConnectionStatus(true);
+                showSuccess('串口连接成功！');
+                
+                // 开始读取数据
+                reader = serialPort.readable.getReader();
+                writer = serialPort.writable.getWriter();
+                
+                readSerialData();
+                
+            } catch (error) {
+                console.error('连接失败:', error);
+                showError('连接失败: ' + error.message);
+            }
+        }
+
+        // 断开串口连接
+        async function disconnectFromSerial() {
+            try {
+                if (reader) {
+                    await reader.cancel();
+                    await reader.releaseLock();
+                    reader = null;
+                }
+                
+                if (writer) {
+                    await writer.releaseLock();
+                    writer = null;
+                }
+                
+                if (serialPort) {
+                    await serialPort.close();
+                    serialPort = null;
+                }
+                
+                isConnected = false;
+                connectionStartTime = null;
+                communicationStartTime = null;
+                lastDataTime = null;
+                updateConnectionStatus(false);
+                showSuccess('串口已断开连接');
+                
+            } catch (error) {
+                console.error('断开连接失败:', error);
+                showError('断开连接失败: ' + error.message);
+            }
+        }
+
+        // 读取串口数据
+        async function readSerialData() {
+            try {
+                while (isConnected && reader) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    const textDecoder = new TextDecoder();
+                    const text = textDecoder.decode(value);
+                    
+                    rxByteCount += value.length;
+                    lastDataTime = Date.now();
+                    updateStats();
+                    
+                    displayReceivedData(text);
+                }
+            } catch (error) {
+                console.error('读取数据失败:', error);
+                if (isConnected) {
+                    errorCount++;
+                    updateStats();
+                    showError('读取数据失败: ' + error.message);
+                }
+            }
+        }
+
+        // 发送串口数据
+        async function sendSerialData() {
+            if (!isConnected || !writer) {
+                showError('请先连接串口设备');
+                return;
+            }
+
+            try {
+                let data = sendData.value;
+                
+                if (!data.trim()) {
+                    showError('请输入要发送的数据');
+                    return;
+                }
+
+                // HEX 模式处理
+                if (hexMode.checked) {
+                    const hexData = data.replace(/\s/g, '');
+                    if (!/^[0-9A-Fa-f]*$/.test(hexData)) {
+                        showError('HEX 格式无效，只能包含 0-9 和 A-F');
+                        return;
+                    }
+                    
+                    const bytes = [];
+                    for (let i = 0; i < hexData.length; i += 2) {
+                        bytes.push(parseInt(hexData.substr(i, 2), 16));
+                    }
+                    data = String.fromCharCode(...bytes);
+                }
+
+                // 添加换行符
+                if (addNewline.checked) {
+                    data += '\r\n';
+                }
+
+                const encoder = new TextEncoder();
+                const encodedData = encoder.encode(data);
+                
+                await writer.write(encodedData);
+                
+                txByteCount += encodedData.length;
+                updateStats();
+                
+                // 显示发送的数据
+                displaySentData(data);
+                
+                // 添加到历史记录
+                addToSendHistory(sendData.value);
+                
+                // 清空输入框
+                if (!cyclicSend.checked) {
+                    sendData.value = '';
+                    updateCharCount();
+                }
+                
+            } catch (error) {
+                console.error('发送数据失败:', error);
+                errorCount++;
+                updateStats();
+                showError('发送数据失败: ' + error.message);
+            }
+        }
+
+        // 显示接收到的数据
+        function displayReceivedData(data) {
+            if (isReceivePaused) {
+                return;
+            }
+            
+            const timestamp = showTimestamp.checked ? `[${new Date().toLocaleTimeString()}] ` : '';
+            
+            // 将数据添加到缓冲区
+            receiveBuffer.push({
+                timestamp: new Date(),
+                data: data,
+                type: 'receive'
+            });
+            
+            // 管理缓冲区大小
+            if (receiveBuffer.length > maxBufferSize) {
+                receiveBuffer = receiveBuffer.slice(-maxBufferSize);
+            }
+            
+            // 格式化数据显示
+            let displayData = data;
+            if (receiveHexMode.checked) {
+                displayData = stringToHex(data);
+            }
+            
+            const content = `${timestamp}← ${displayData}\n`;
+            
+            dataDisplay.textContent += content;
+            dataDisplay.classList.add('has-data');
+            
+            if (autoScroll.checked) {
+                dataDisplay.scrollTop = dataDisplay.scrollHeight;
+            }
+        }
+
+        // 显示发送的数据
+        function displaySentData(data) {
+            const timestamp = showTimestamp.checked ? `[${new Date().toLocaleTimeString()}] ` : '';
+            
+            // 将数据添加到缓冲区
+            receiveBuffer.push({
+                timestamp: new Date(),
+                data: data,
+                type: 'send'
+            });
+            
+            // 格式化数据显示
+            let displayData = data;
+            if (receiveHexMode.checked) {
+                displayData = stringToHex(data);
+            }
+            
+            const content = `${timestamp}→ ${displayData}\n`;
+            
+            dataDisplay.textContent += content;
+            dataDisplay.classList.add('has-data');
+            
+            if (autoScroll.checked) {
+                dataDisplay.scrollTop = dataDisplay.scrollHeight;
+            }
+        }
+
+        // 清空接收数据
+        function clearReceivedData() {
+            if (receiveBuffer.length === 0) {
+                showError('没有数据可清除');
+                return;
+            }
+            
+            showClearConfirmDialog();
+        }
+
+        // 显示清除确认对话框
+        function showClearConfirmDialog() {
+            const confirmContent = `
+<div style="text-align: center; padding: 16px;">
+    <h4 style="margin-bottom: 16px; color: #374151;">确认清除数据</h4>
+    <p style="margin-bottom: 16px; color: #6B7280;">
+        即将清除所有接收和发送的数据记录（共 ${receiveBuffer.length} 条记录）。
+        <br><br>
+        <strong>此操作不可撤销！</strong>
+    </p>
+    <div style="display: flex; justify-content: center; gap: 12px;">
+        <button onclick="confirmClearData()" style="padding: 8px 24px; background: #EF4444; color: white; border: none; border-radius: 4px; cursor: pointer;">确认清除</button>
+        <button onclick="closeModal()" style="padding: 8px 24px; background: #6B7280; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+    </div>
+</div>
+            `;
+            
+            showModal('确认操作', confirmContent);
+        }
+
+        // 确认清除数据
+        window.confirmClearData = function() {
+            dataDisplay.textContent = '';
+            dataDisplay.classList.remove('has-data');
+            receiveBuffer = [];
+            rxByteCount = 0;
+            txByteCount = 0;
+            errorCount = 0;
+            communicationStartTime = Date.now(); // 重置通信开始时间
+            lastDataTime = null;
+            updateStats();
+            
+            showSuccess('数据已清除');
+            
+            // 关闭模态框
+            const modal = document.querySelector('[style*="position: fixed"]');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        };
+
+        // 保存接收数据
+        function saveReceivedData() {
+            if (receiveBuffer.length === 0) {
+                showError('没有数据可保存');
+                return;
+            }
+
+            showDataExportDialog();
+        }
+
+        // 显示数据导出对话框
+        function showDataExportDialog() {
+            const exportContent = `
+<div style="margin-bottom: 16px;">
+    <h4 style="margin-bottom: 8px;">选择导出格式:</h4>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="exportFormat" value="txt" checked>
+            <span>文本文件 (.txt) - 纯文本格式</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="exportFormat" value="log">
+            <span>日志文件 (.log) - 带时间戳的日志格式</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="exportFormat" value="csv">
+            <span>CSV文件 (.csv) - 表格格式</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="exportFormat" value="json">
+            <span>JSON文件 (.json) - 结构化数据格式</span>
+        </label>
+    </div>
+</div>
+
+<div style="margin-bottom: 16px;">
+    <h4 style="margin-bottom: 8px;">导出选项:</h4>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="includeMetadata" checked>
+            <span>包含元数据（统计信息、配置等）</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="includeTimestamp" checked>
+            <span>包含时间戳</span>
+        </label>
+    </div>
+</div>
+
+<div style="text-align: center;">
+    <button onclick="performDataExport()" style="padding: 8px 24px; background: #10B981; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px;">导出</button>
+    <button onclick="closeModal()" style="padding: 8px 24px; background: #6B7280; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+</div>
+            `;
+            
+            showModal('导出数据', exportContent);
+        }
+
+        // 执行数据导出
+        window.performDataExport = function() {
+            const selectedFormat = document.querySelector('input[name="exportFormat"]:checked').value;
+            const includeMetadata = document.getElementById('includeMetadata').checked;
+            const includeTimestamp = document.getElementById('includeTimestamp').checked;
+            
+            let exportData = '';
+            let filename = `serial_log_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+            let mimeType = 'text/plain';
+            
+            switch (selectedFormat) {
+                case 'txt':
+                    exportData = generateTextExport(includeTimestamp);
+                    filename += '.txt';
+                    mimeType = 'text/plain';
+                    break;
+                case 'log':
+                    exportData = generateLogExport(includeTimestamp, includeMetadata);
+                    filename += '.log';
+                    mimeType = 'text/plain';
+                    break;
+                case 'csv':
+                    exportData = generateCSVExport(includeTimestamp);
+                    filename += '.csv';
+                    mimeType = 'text/csv';
+                    break;
+                case 'json':
+                    exportData = generateJSONExport(includeMetadata);
+                    filename += '.json';
+                    mimeType = 'application/json';
+                    break;
+            }
+            
+            if (includeMetadata && selectedFormat !== 'json') {
+                const metadata = generateMetadata();
+                exportData = metadata + '\n' + exportData;
+            }
+            
+            // 下载文件
+            const blob = new Blob([exportData], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showSuccess(`数据已导出为 ${selectedFormat.toUpperCase()} 格式`);
+            
+            // 关闭模态框
+            const modal = document.querySelector('[style*="position: fixed"]');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        };
+
+        // 生成文本导出
+        function generateTextExport(includeTimestamp) {
+            return receiveBuffer.map(item => {
+                const timestamp = includeTimestamp ? `[${item.timestamp.toLocaleString()}] ` : '';
+                const direction = item.type === 'receive' ? '←' : '→';
+                return `${timestamp}${direction} ${item.data}`;
+            }).join('\n');
+        }
+
+        // 生成日志导出
+        function generateLogExport(includeTimestamp, includeMetadata) {
+            let content = '';
+            
+            if (includeMetadata) {
+                content += '=== 串口调试会话日志 ===\n';
+                content += `会话开始时间: ${communicationStartTime ? new Date(communicationStartTime).toLocaleString() : '未知'}\n`;
+                content += `导出时间: ${new Date().toLocaleString()}\n`;
+                content += `总接收字节: ${rxByteCount}\n`;
+                content += `总发送字节: ${txByteCount}\n`;
+                content += `错误计数: ${errorCount}\n`;
+                content += '=================================\n\n';
+            }
+            
+            content += receiveBuffer.map(item => {
+                const timestamp = includeTimestamp ? `[${item.timestamp.toISOString()}] ` : '';
+                const direction = item.type === 'receive' ? 'RX' : 'TX';
+                return `${timestamp}${direction}: ${item.data}`;
+            }).join('\n');
+            
+            return content;
+        }
+
+        // 生成CSV导出
+        function generateCSVExport(includeTimestamp) {
+            let csv = includeTimestamp ? 'Timestamp,Direction,Data\n' : 'Direction,Data\n';
+            
+            csv += receiveBuffer.map(item => {
+                const timestamp = includeTimestamp ? `"${item.timestamp.toISOString()}"` : '';
+                const direction = item.type === 'receive' ? 'RX' : 'TX';
+                const data = `"${item.data.replace(/"/g, '""')}"`;
+                return includeTimestamp ? `${timestamp},${direction},${data}` : `${direction},${data}`;
+            }).join('\n');
+            
+            return csv;
+        }
+
+        // 生成JSON导出
+        function generateJSONExport(includeMetadata) {
+            const exportObj = {
+                version: '1.0',
+                exportTime: new Date().toISOString(),
+                data: receiveBuffer.map(item => ({
+                    timestamp: item.timestamp.toISOString(),
+                    type: item.type,
+                    data: item.data
+                }))
+            };
+            
+            if (includeMetadata) {
+                exportObj.metadata = {
+                    sessionStartTime: communicationStartTime ? new Date(communicationStartTime).toISOString() : null,
+                    totalRxBytes: rxByteCount,
+                    totalTxBytes: txByteCount,
+                    errorCount: errorCount,
+                    bufferSize: receiveBuffer.length,
+                    maxBufferSize: maxBufferSize
+                };
+            }
+            
+            return JSON.stringify(exportObj, null, 2);
+        }
+
+        // 生成元数据
+        function generateMetadata() {
+            return `=== 会话信息 ===
+导出时间: ${new Date().toLocaleString()}
+会话开始: ${communicationStartTime ? new Date(communicationStartTime).toLocaleString() : '未知'}
+接收字节: ${rxByteCount}
+发送字节: ${txByteCount}
+错误计数: ${errorCount}
+缓冲条目: ${receiveBuffer.length}/${maxBufferSize}
+================`;
+        }
+
+        // 更新连接状态
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = '已连接';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                sendBtn.disabled = false;
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = '未连接';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                sendBtn.disabled = true;
+            }
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            rxBytesSpan.textContent = rxByteCount;
+            txBytesSpan.textContent = txByteCount;
+            errorCountSpan.textContent = errorCount;
+            bufferCountSpan.textContent = receiveBuffer.length;
+            maxBufferSpan.textContent = maxBufferSize;
+            
+            // 计算通信速率
+            if (communicationStartTime && lastDataTime) {
+                const elapsedSeconds = (lastDataTime - communicationStartTime) / 1000;
+                const totalBytes = rxByteCount + txByteCount;
+                const speed = elapsedSeconds > 0 ? Math.round(totalBytes / elapsedSeconds) : 0;
+                commSpeedSpan.textContent = speed;
+            } else {
+                commSpeedSpan.textContent = '0';
+            }
+        }
+
+        // 显示错误消息
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            successMessage.classList.add('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // 显示成功消息
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            setTimeout(() => {
+                successMessage.classList.add('hidden');
+            }, 3000);
+        }
+
+        // 检查已有串口设备
+        async function checkExistingPorts() {
+            try {
+                if ('serial' in navigator) {
+                    availablePorts = await navigator.serial.getPorts();
+                    updatePortList();
+                    
+                    // 监听新设备连接
+                    navigator.serial.addEventListener('connect', (event) => {
+                        console.log('串口设备已连接:', event.target);
+                        checkExistingPorts();
+                    });
+                    
+                    // 监听设备断开
+                    navigator.serial.addEventListener('disconnect', (event) => {
+                        console.log('串口设备已断开:', event.target);
+                        checkExistingPorts();
+                        if (event.target === serialPort) {
+                            disconnectFromSerial();
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('检查串口设备失败:', error);
+            }
+        }
+
+        // 更新设备列表
+        function updatePortList() {
+            const targetDevice = document.getElementById('targetDevice');
+            
+            // 清空现有选项
+            while (targetDevice.children.length > 1) {
+                targetDevice.removeChild(targetDevice.lastChild);
+            }
+            
+            // 添加检测到的设备
+            availablePorts.forEach((port, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                
+                // 尝试获取设备信息
+                const info = port.getInfo();
+                let deviceName = `设备 ${index + 1}`;
+                
+                if (info.usbVendorId && info.usbProductId) {
+                    deviceName += ` (VID:${info.usbVendorId.toString(16).toUpperCase().padStart(4, '0')}, PID:${info.usbProductId.toString(16).toUpperCase().padStart(4, '0')})`;
+                }
+                
+                option.textContent = deviceName;
+                targetDevice.appendChild(option);
+            });
+            
+            // 更新连接按钮状态
+            connectBtn.disabled = availablePorts.length === 0 && !('serial' in navigator);
+        }
+
+        // 故障排除对话框
+        function showTroubleshootDialog() {
+            const diagnosticInfo = getDiagnosticInfo();
+            
+            const troubleshootContent = `
+🔧 串口故障排除和诊断信息
+
+📊 系统信息:
+• 浏览器: ${navigator.userAgent}
+• Web Serial API 支持: ${'serial' in navigator ? '✅ 支持' : '❌ 不支持'}
+• HTTPS 连接: ${location.protocol === 'https:' ? '✅ 是' : '❌ 否 (需要 HTTPS)'}
+
+🔌 设备状态:
+• 已检测设备数量: ${availablePorts.length}
+• 当前连接状态: ${isConnected ? '✅ 已连接' : '❌ 未连接'}
+• 连接时长: ${connectionStartTime ? Math.floor((Date.now() - connectionStartTime) / 1000) + ' 秒' : '未连接'}
+
+📈 通信统计:
+• 接收字节数: ${rxByteCount}
+• 发送字节数: ${txByteCount}
+
+🛠️ 常见问题解决方案:
+
+1. 设备未检测到:
+   - 确保设备已正确连接到计算机
+   - 检查设备驱动程序是否已安装
+   - 尝试使用不同的 USB 端口
+   - 重新启动浏览器
+
+2. 连接失败:
+   - 确保设备未被其他程序占用
+   - 检查串口参数是否正确
+   - 尝试重新插拔设备
+
+3. 数据传输问题:
+   - 检查波特率设置是否匹配
+   - 确认数据位、停止位、校验位配置
+   - 检查设备是否支持所选的通信参数
+
+4. 权限问题:
+   - 确保在 HTTPS 环境下使用
+   - 允许浏览器访问串口权限
+   - 尝试刷新页面重新授权
+
+💡 提示: 如果问题持续存在，请尝试重启设备和浏览器。
+            `;
+            
+            // 创建模态对话框
+            showModal('故障排除', troubleshootContent);
+        }
+
+        // 获取诊断信息
+        function getDiagnosticInfo() {
+            return {
+                browserSupport: 'serial' in navigator,
+                httpsConnection: location.protocol === 'https:',
+                deviceCount: availablePorts.length,
+                connectionStatus: isConnected,
+                connectionDuration: connectionStartTime ? Date.now() - connectionStartTime : 0,
+                rxBytes: rxByteCount,
+                txBytes: txByteCount,
+                userAgent: navigator.userAgent
+            };
+        }
+
+        // 显示模态对话框
+        function showModal(title, content) {
+            // 创建模态背景
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            
+            // 创建模态内容
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 24px;
+                max-width: 600px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            `;
+            
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; color: #374151;">${title}</h3>
+                    <button id="closeModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6B7280;">×</button>
+                </div>
+                <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.5; color: #374151; background: #F9FAFB; padding: 16px; border-radius: 8px; overflow-x: auto;">${content}</pre>
+            `;
+            
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // 关闭事件
+            function closeModal() {
+                document.body.removeChild(modal);
+            }
+            
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+            
+            // ESC 键关闭
+            document.addEventListener('keydown', function escHandler(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            });
+        }
+
+        // 切换接收暂停状态
+        function toggleReceivePause() {
+            isReceivePaused = !isReceivePaused;
+            pauseReceiveBtn.textContent = isReceivePaused ? '▶️ 恢复接收' : '⏸️ 暂停接收';
+            pauseReceiveBtn.style.background = isReceivePaused ? '#10B981' : '#6B7280';
+        }
+
+        // 刷新数据显示
+        function refreshDataDisplay() {
+            if (receiveBuffer.length === 0) {
+                return;
+            }
+            
+            dataDisplay.textContent = '';
+            
+            receiveBuffer.forEach(item => {
+                const timestamp = showTimestamp.checked ? `[${item.timestamp.toLocaleTimeString()}] ` : '';
+                const direction = item.type === 'receive' ? '←' : '→';
+                
+                let displayData = item.data;
+                if (receiveHexMode.checked) {
+                    displayData = stringToHex(item.data);
+                }
+                
+                const content = `${timestamp}${direction} ${displayData}\n`;
+                dataDisplay.textContent += content;
+            });
+            
+            dataDisplay.classList.add('has-data');
+            if (autoScroll.checked) {
+                dataDisplay.scrollTop = dataDisplay.scrollHeight;
+            }
+        }
+
+        // 过滤显示的数据
+        function filterDisplayedData() {
+            const filterText = searchFilter.value.toLowerCase();
+            
+            if (!filterText) {
+                refreshDataDisplay();
+                return;
+            }
+            
+            dataDisplay.textContent = '';
+            
+            receiveBuffer.forEach(item => {
+                const itemData = item.data.toLowerCase();
+                if (itemData.includes(filterText)) {
+                    const timestamp = showTimestamp.checked ? `[${item.timestamp.toLocaleTimeString()}] ` : '';
+                    const direction = item.type === 'receive' ? '←' : '→';
+                    
+                    let displayData = item.data;
+                    if (receiveHexMode.checked) {
+                        displayData = stringToHex(item.data);
+                    }
+                    
+                    const content = `${timestamp}${direction} ${displayData}\n`;
+                    dataDisplay.textContent += content;
+                }
+            });
+            
+            dataDisplay.classList.add('has-data');
+            if (autoScroll.checked) {
+                dataDisplay.scrollTop = dataDisplay.scrollHeight;
+            }
+        }
+
+        // 字符串转HEX
+        function stringToHex(str) {
+            let hex = '';
+            for (let i = 0; i < str.length; i++) {
+                const charCode = str.charCodeAt(i);
+                hex += charCode.toString(16).toUpperCase().padStart(2, '0') + ' ';
+            }
+            return hex.trim();
+        }
+
+        // HEX转字符串
+        function hexToString(hex) {
+            let str = '';
+            const hexArray = hex.replace(/\s/g, '').match(/.{1,2}/g);
+            if (hexArray) {
+                for (let i = 0; i < hexArray.length; i++) {
+                    str += String.fromCharCode(parseInt(hexArray[i], 16));
+                }
+            }
+            return str;
+        }
+
+        // 更新字符计数
+        function updateCharCount() {
+            charCount.textContent = sendData.value.length;
+        }
+
+        // 添加到发送历史
+        function addToSendHistory(command) {
+            if (!command.trim()) return;
+            
+            // 避免重复
+            const index = sendHistory.indexOf(command);
+            if (index > -1) {
+                sendHistory.splice(index, 1);
+            }
+            
+            sendHistory.unshift(command);
+            
+            // 限制历史记录数量
+            if (sendHistory.length > maxHistorySize) {
+                sendHistory = sendHistory.slice(0, maxHistorySize);
+            }
+            
+            saveSendHistory();
+        }
+
+        // 显示发送历史
+        function showSendHistory() {
+            if (sendHistory.length === 0) {
+                showError('暂无发送历史记录');
+                return;
+            }
+            
+            const historyContent = sendHistory.map((cmd, index) => 
+                `${index + 1}. ${cmd}`
+            ).join('\n');
+            
+            showModal('发送历史记录', historyContent);
+        }
+
+        // 保存发送历史到本地存储
+        function saveSendHistory() {
+            try {
+                localStorage.setItem('serialDebugger_sendHistory', JSON.stringify(sendHistory));
+            } catch (error) {
+                console.warn('保存发送历史失败:', error);
+            }
+        }
+
+        // 加载发送历史从本地存储
+        function loadSendHistory() {
+            try {
+                const saved = localStorage.getItem('serialDebugger_sendHistory');
+                if (saved) {
+                    sendHistory = JSON.parse(saved);
+                }
+            } catch (error) {
+                console.warn('加载发送历史失败:', error);
+                sendHistory = [];
+            }
+        }
+
+        // 切换循环发送
+        function toggleCyclicSend() {
+            if (cyclicSend.checked) {
+                if (!isConnected) {
+                    cyclicSend.checked = false;
+                    showError('请先连接串口设备');
+                    return;
+                }
+                startCyclicSend();
+            } else {
+                stopCyclicSend();
+            }
+        }
+
+        // 开始循环发送
+        function startCyclicSend() {
+            const interval = parseInt(sendInterval.value);
+            if (interval < 100) {
+                showError('发送间隔不能小于100ms');
+                cyclicSend.checked = false;
+                return;
+            }
+            
+            cyclicSendTimer = setInterval(() => {
+                if (isConnected && sendData.value.trim()) {
+                    sendSerialData();
+                } else {
+                    stopCyclicSend();
+                }
+            }, interval);
+            
+            sendBtn.textContent = '🔄 循环发送中...';
+            sendBtn.style.background = '#F59E0B';
+        }
+
+        // 停止循环发送
+        function stopCyclicSend() {
+            if (cyclicSendTimer) {
+                clearInterval(cyclicSendTimer);
+                cyclicSendTimer = null;
+            }
+            cyclicSend.checked = false;
+            sendBtn.textContent = '📤 发送';
+            sendBtn.style.background = '#3B82F6';
+        }
+
+        // 初始化快捷命令
+        function initializeQuickCommands() {
+            const quickButtonsContainer = document.querySelector('.quick-buttons');
+            quickButtonsContainer.innerHTML = '';
+            
+            quickCommands.forEach(cmd => {
+                const button = document.createElement('button');
+                button.className = 'btn-quick';
+                button.textContent = cmd.name;
+                button.addEventListener('click', () => {
+                    sendData.value = cmd.command;
+                    updateCharCount();
+                });
+                quickButtonsContainer.appendChild(button);
+            });
+            
+            // 管理命令按钮
+            const manageBtn = document.createElement('button');
+            manageBtn.className = 'btn-manage';
+            manageBtn.textContent = '管理命令';
+            manageBtn.addEventListener('click', showQuickCommandManager);
+            quickButtonsContainer.appendChild(manageBtn);
+        }
+
+        // 显示快捷命令管理器
+        function showQuickCommandManager() {
+            const managerContent = `
+<div style="margin-bottom: 16px;">
+    <h4 style="margin-bottom: 8px;">添加新命令:</h4>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <input type="text" id="newCmdName" placeholder="命令名称" style="padding: 6px 8px; border: 1px solid #D1D5DB; border-radius: 4px; flex: 1;">
+        <input type="text" id="newCmdValue" placeholder="命令内容" style="padding: 6px 8px; border: 1px solid #D1D5DB; border-radius: 4px; flex: 2;">
+        <button onclick="addQuickCommand()" style="padding: 6px 12px; background: #10B981; color: white; border: none; border-radius: 4px; cursor: pointer;">添加</button>
+    </div>
+</div>
+
+<div>
+    <h4 style="margin-bottom: 8px;">现有命令:</h4>
+    <div id="existingCommands">
+        ${quickCommands.map((cmd, index) => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #E5E7EB;">
+                <span><strong>${cmd.name}:</strong> ${cmd.command}</span>
+                <button onclick="removeQuickCommand(${index})" style="padding: 2px 8px; background: #EF4444; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">删除</button>
+            </div>
+        `).join('')}
+    </div>
+</div>
+            `;
+            
+            showModal('快捷命令管理', managerContent);
+        }
+
+        // 添加快捷命令
+        window.addQuickCommand = function() {
+            const nameInput = document.getElementById('newCmdName');
+            const valueInput = document.getElementById('newCmdValue');
+            
+            const name = nameInput.value.trim();
+            const command = valueInput.value.trim();
+            
+            if (!name || !command) {
+                alert('请填写命令名称和内容');
+                return;
+            }
+            
+            quickCommands.push({ name, command });
+            saveQuickCommands();
+            initializeQuickCommands();
+            
+            nameInput.value = '';
+            valueInput.value = '';
+            
+            // 更新模态框内容
+            document.getElementById('existingCommands').innerHTML = quickCommands.map((cmd, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #E5E7EB;">
+                    <span><strong>${cmd.name}:</strong> ${cmd.command}</span>
+                    <button onclick="removeQuickCommand(${index})" style="padding: 2px 8px; background: #EF4444; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">删除</button>
+                </div>
+            `).join('');
+        };
+
+        // 删除快捷命令
+        window.removeQuickCommand = function(index) {
+            if (confirm('确定要删除这个快捷命令吗？')) {
+                quickCommands.splice(index, 1);
+                saveQuickCommands();
+                initializeQuickCommands();
+                
+                // 更新模态框内容
+                document.getElementById('existingCommands').innerHTML = quickCommands.map((cmd, idx) => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #E5E7EB;">
+                        <span><strong>${cmd.name}:</strong> ${cmd.command}</span>
+                        <button onclick="removeQuickCommand(${idx})" style="padding: 2px 8px; background: #EF4444; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">删除</button>
+                    </div>
+                `).join('');
+            }
+        };
+
+        // 保存快捷命令到本地存储
+        function saveQuickCommands() {
+            try {
+                localStorage.setItem('serialDebugger_quickCommands', JSON.stringify(quickCommands));
+            } catch (error) {
+                console.warn('保存快捷命令失败:', error);
+            }
+        }
+
+        // 从本地存储加载快捷命令
+        function loadQuickCommands() {
+            try {
+                const saved = localStorage.getItem('serialDebugger_quickCommands');
+                if (saved) {
+                    quickCommands = JSON.parse(saved);
+                }
+            } catch (error) {
+                console.warn('加载快捷命令失败:', error);
+            }
+        }
+    </script>
+</body>
+</html>
