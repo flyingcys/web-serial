@@ -23,6 +23,9 @@
 
 19.10559 ￥
 
+20.09486 ￥
+
+
 ● I'm sorry, but I can't process images at the moment. Please try again with text-only content.
 
 
