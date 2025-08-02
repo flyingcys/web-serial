@@ -429,6 +429,8 @@
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn btn-primary" id="connectBtn">连接串口</button>
                 <button class="btn btn-error" id="disconnectBtn" disabled>断开连接</button>
+                <button class="btn" id="exportConfigBtn">导出配置</button>
+                <button class="btn" id="importConfigBtn">导入配置</button>
             </div>
         </div>
 
@@ -436,10 +438,15 @@
             <div class="panel receive-panel">
                 <div class="panel-header">
                     <h2 class="panel-title">数据接收</h2>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
                         <div class="mode-selector">
                             <button class="mode-btn active" data-mode="text" id="receiveModeText">文本模式</button>
                             <button class="mode-btn" data-mode="hex" id="receiveModeHex">HEX模式</button>
+                        </div>
+                        <div class="stats-display" style="font-size: 12px; color: var(--text-secondary);">
+                            接收: <span id="recvBytes">0</span> 字节 | 
+                            发送: <span id="sentBytes">0</span> 字节 | 
+                            速率: <span id="dataRate">0</span> B/s
                         </div>
                     </div>
                 </div>
@@ -449,6 +456,8 @@
                 <div class="receive-controls">
                     <button class="btn" id="clearReceiveBtn">清空接收</button>
                     <button class="btn" id="saveDataBtn">保存数据</button>
+                    <input type="text" class="form-control" id="searchInput" placeholder="搜索数据..." style="width: 150px;">
+                    <button class="btn" id="searchBtn">搜索</button>
                     <div class="checkbox-group">
                         <input type="checkbox" id="showTimestamp" checked>
                         <label for="showTimestamp">显示时间戳</label>
@@ -494,13 +503,17 @@
                 
                 <div class="quick-commands">
                     <div class="quick-commands-title">快捷命令</div>
-                    <div class="quick-buttons">
+                    <div class="quick-buttons" id="quickButtons">
                         <button class="quick-btn" data-cmd="AT">AT</button>
                         <button class="quick-btn" data-cmd="AT+GMI">AT+GMI</button>
                         <button class="quick-btn" data-cmd="AT+CGMI">AT+CGMI</button>
                         <button class="quick-btn" data-cmd="AT+CGSN">AT+CGSN</button>
                         <button class="quick-btn" data-cmd="ATI">ATI</button>
                         <button class="quick-btn" data-cmd="AT+CREG?">AT+CREG?</button>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <input type="text" class="form-control" id="newQuickCmd" placeholder="新快捷命令..." style="width: 150px; display: inline-block;">
+                        <button class="btn" id="addQuickCmd" style="padding: 6px 12px; font-size: 12px;">添加</button>
                     </div>
                 </div>
             </div>
