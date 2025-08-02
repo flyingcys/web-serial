@@ -24,3 +24,8 @@
 19.10559 ￥
 
 ● I'm sorry, but I can't process images at the moment. Please try again with text-only content.
+
+
+
+1830s
+
