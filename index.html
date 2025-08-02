@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome 串口调试助手</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 串口连接区域 -->
+        <div class="connection-section">
+            <h2>串口连接</h2>
+            <div class="connection-controls">
+                <div class="control-group">
+                    <label for="baudRate">波特率:</label>
+                    <select id="baudRate">
+                        <option value="9600">9600</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                        <option value="57600">57600</option>
+                        <option value="115200" selected>115200</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="dataBits">数据位:</label>
+                    <select id="dataBits">
+                        <option value="8" selected>8</option>
+                        <option value="7">7</option>
+                        <option value="6">6</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="stopBits">停止位:</label>
+                    <select id="stopBits">
+                        <option value="1" selected>1</option>
+                        <option value="2">2</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="parity">校验位:</label>
+                    <select id="parity">
+                        <option value="none" selected>无</option>
+                        <option value="odd">奇校验</option>
+                        <option value="even">偶校验</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="flowControl">流控制:</label>
+                    <select id="flowControl">
+                        <option value="none" selected>无</option>
+                        <option value="hardware">RTS/CTS</option>
+                        <option value="software">XON/XOFF</option>
+                    </select>
+                </div>
+            </div>
+            <div class="connection-actions">
+                <button id="connectBtn" class="btn connect-btn">连接串口</button>
+                <button id="disconnectBtn" class="btn disconnect-btn" disabled>断开连接</button>
+                <div class="connection-status">
+                    <span id="statusText">未连接</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据接收区域 -->
+        <div class="receive-section">
+            <div class="section-header">
+                <h2>数据接收</h2>
+                <div class="receive-controls">
+                    <label class="switch">
+                        <input type="checkbox" id="hexDisplay">
+                        <span class="slider"></span>
+                    </label>
+                    <span>HEX 显示</span>
+                    <label class="switch">
+                        <input type="checkbox" id="autoScroll" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span>自动滚动</span>
+                    <label class="switch">
+                        <input type="checkbox" id="showTimestamp">
+                        <span class="slider"></span>
+                    </label>
+                    <span>时间戳</span>
+                </div>
+            </div>
+            <div class="receive-actions">
+                <button id="clearReceiveBtn" class="btn">清空接收区</button>
+                <button id="saveReceiveBtn" class="btn">保存数据</button>
+                <button id="pauseReceiveBtn" class="btn">暂停接收</button>
+            </div>
+            <div id="receiveArea" class="receive-area"></div>
+        </div>
+
+        <!-- 数据发送区域 -->
+        <div class="send-section">
+            <div class="section-header">
+                <h2>数据发送</h2>
+                <div class="send-controls">
+                    <label class="switch">
+                        <input type="checkbox" id="hexSend">
+                        <span class="slider"></span>
+                    </label>
+                    <span>HEX 发送</span>
+                    <label class="switch">
+                        <input type="checkbox" id="appendNewline">
+                        <span class="slider"></span>
+                    </label>
+                    <span>添加换行</span>
+                </div>
+            </div>
+            <div class="send-actions">
+                <button id="sendBtn" class="btn send-btn">发送数据</button>
+                <button id="clearSendBtn" class="btn">清空发送区</button>
+                <div class="char-count">
+                    字符数: <span id="charCount">0</span>
+                </div>
+            </div>
+            <textarea id="sendArea" class="send-area" placeholder="在此输入要发送的数据..."></textarea>
+            
+            <!-- 快捷命令 -->
+            <div class="quick-commands">
+                <h3>快捷命令</h3>
+                <div class="command-buttons">
+                    <button class="cmd-btn" data-cmd="AT">AT</button>
+                    <button class="cmd-btn" data-cmd="AT+INFO">AT+INFO</button>
+                    <button class="cmd-btn" data-cmd="AT+VERSION">AT+VERSION</button>
+                    <button class="cmd-btn" data-cmd="AT+RESET">AT+RESET</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据统计 -->
+        <div class="stats-section">
+            <h3>通信统计</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span>接收字节:</span>
+                    <span id="recvBytes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>发送字节:</span>
+                    <span id="sentBytes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>连接时间:</span>
+                    <span id="connectTime">00:00:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
