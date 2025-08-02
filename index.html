@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome 串口调试助手</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Chrome 串口调试助手</h1>
+        
+        <!-- 串口连接部分 -->
+        <div class="section" id="connection-section">
+            <h2>串口连接</h2>
+            <div class="config-row">
+                <label for="baudrate">波特率:</label>
+                <select id="baudrate">
+                    <option value="9600">9600</option>
+                    <option value="19200">19200</option>
+                    <option value="38400">38400</option>
+                    <option value="57600">57600</option>
+                    <option value="115200" selected>115200</option>
+                </select>
+                
+                <label for="databits">数据位:</label>
+                <select id="databits">
+                    <option value="8" selected>8</option>
+                    <option value="7">7</option>
+                    <option value="6">6</option>
+                    <option value="5">5</option>
+                </select>
+                
+                <label for="stopbits">停止位:</label>
+                <select id="stopbits">
+                    <option value="1" selected>1</option>
+                    <option value="1.5">1.5</option>
+                    <option value="2">2</option>
+                </select>
+                
+                <label for="parity">校验位:</label>
+                <select id="parity">
+                    <option value="none" selected>无</option>
+                    <option value="even">偶校验</option>
+                    <option value="odd">奇校验</option>
+                </select>
+            </div>
+            
+            <div class="button-row">
+                <button id="connect-btn">连接串口</button>
+                <button id="disconnect-btn" disabled>断开连接</button>
+                <span id="status">未连接</span>
+            </div>
+        </div>
+        
+        <!-- 数据接收部分 -->
+        <div class="section" id="receive-section">
+            <h2>数据接收</h2>
+            <div class="receive-controls">
+                <label>
+                    <input type="checkbox" id="timestamp-toggle"> 显示时间戳
+                </label>
+                <label>
+                    <input type="checkbox" id="auto-scroll" checked> 自动滚动
+                </label>
+                <button id="clear-receive">清空</button>
+            </div>
+            <div class="data-display" id="receive-data"></div>
+        </div>
+        
+        <!-- 数据发送部分 -->
+        <div class="section" id="send-section">
+            <h2>数据发送</h2>
+            <div class="send-controls">
+                <label>
+                    <input type="radio" name="send-mode" value="text" checked> 文本模式
+                </label>
+                <label>
+                    <input type="radio" name="send-mode" value="hex"> HEX模式
+                </label>
+                <label>
+                    <input type="checkbox" id="auto-newline"> 自动换行
+                </label>
+                <span id="char-count">字符数: 0</span>
+            </div>
+            <textarea id="send-data" placeholder="输入要发送的数据..."></textarea>
+            <div class="button-row">
+                <button id="send-btn">发送</button>
+                <button id="clear-send">清空</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="serial-debugger.js"></script>
+</body>
+</html>
