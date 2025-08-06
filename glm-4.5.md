@@ -25,6 +25,7 @@
 
 20.09486 ￥
 
+20.34470 ￥
 
 ● I'm sorry, but I can't process images at the moment. Please try again with text-only content.
 
@@ -32,3 +33,9 @@
 
 1830s
 
+
+## qwen3-coder
+
+250s
+
+0.53 RMB
